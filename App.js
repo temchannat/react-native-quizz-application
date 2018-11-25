@@ -1,62 +1,53 @@
 import React from 'react';
-import { Platform, StatusBar, StyleSheet, View } from 'react-native';
-import { AppLoading, Asset, Font, Icon } from 'expo';
-import AppNavigator from './navigation/AppNavigator';
+import { Text, View, TouchableOpacity, ImageBackground } from 'react-native';
+import { Camera, Permissions, FaceDetector } from 'expo';
+import FaceCam from './components/camera.js'
+import Quiz from './components/quiz.js'
 
 export default class App extends React.Component {
   state = {
-    isLoadingComplete: false,
+    hasCameraPermission: null,
+    type: Camera.Constants.Type.front,
+    faceDetected: false
   };
 
+  faceDetected() {
+    this.setState({ faceDetected: true })
+  }
+
+  async componentWillMount() {
+    const { status } = await Permissions.askAsync(Permissions.CAMERA);
+    this.setState({ hasCameraPermission: status === 'granted' });
+  }
+
   render() {
-    if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
-      return (
-        <AppLoading
-          startAsync={this._loadResourcesAsync}
-          onError={this._handleLoadingError}
-          onFinish={this._handleFinishLoading}
-        />
-      );
+    const { hasCameraPermission, faceDetected } = this.state;
+    if (hasCameraPermission === null) {
+      return <View />;
+    } else if (hasCameraPermission === false) {
+      return <Text>No access to camera</Text>;
     } else {
       return (
-        <View style={styles.container}>
-          {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
-          <AppNavigator />
+        <View style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <ImageBackground
+            source={{
+              uri: 'https://www.desktopbackground.org/p/2010/07/29/56023_abstract-3d-white-geometric-background-white-seamless-texture-w_1000x1000_h.jpg',
+              cache: 'only-if-cached',
+            }}
+            style={{ flex: 1 }}
+          >
+            {
+              faceDetected ? <Quiz /> : <FaceCam faceDetected={this.faceDetected.bind(this)} />
+
+            }
+          </ImageBackground>
         </View>
       );
     }
   }
-
-  _loadResourcesAsync = async () => {
-    return Promise.all([
-      Asset.loadAsync([
-        require('./assets/images/robot-dev.png'),
-        require('./assets/images/robot-prod.png'),
-      ]),
-      Font.loadAsync({
-        // This is the font that we are using for our tab bar
-        ...Icon.Ionicons.font,
-        // We include SpaceMono because we use it in HomeScreen.js. Feel free
-        // to remove this if you are not using it in your app
-        'space-mono': require('./assets/fonts/SpaceMono-Regular.ttf'),
-      }),
-    ]);
-  };
-
-  _handleLoadingError = error => {
-    // In this case, you might want to report the error to your error
-    // reporting service, for example Sentry
-    console.warn(error);
-  };
-
-  _handleFinishLoading = () => {
-    this.setState({ isLoadingComplete: true });
-  };
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
